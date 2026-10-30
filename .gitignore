@@ -1,0 +1,10 @@
+.venv/
+build*/
+data/
+artifacts/
+__pycache__/
+*.pyc
+.tools/
+CMakeUserPresets.json
+.vscode/settings.json
+*.user
