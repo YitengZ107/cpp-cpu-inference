@@ -1,0 +1,55 @@
+{
+  "architecture": [
+    784,
+    64,
+    10
+  ],
+  "dataset": "MNIST",
+  "preprocessing": "float32 pixel / 255",
+  "seed": 42,
+  "epochs": 5,
+  "training_samples": 60000,
+  "test_samples": 10000,
+  "exported_mnist_samples": 1024,
+  "edge_samples": 4,
+  "threads": 2,
+  "torch_version": "2.15.0+cpu",
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.4832749348640442,
+      "test_accuracy": 0.9276
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.22628950254122415,
+      "test_accuracy": 0.945
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.17401477743784585,
+      "test_accuracy": 0.9533
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.14379903672536215,
+      "test_accuracy": 0.9578
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.12293150663773218,
+      "test_accuracy": 0.9651
+    }
+  ],
+  "mnist_md5": {
+    "train-images-idx3-ubyte.gz": "f68b3c2dcbeaaa9fbdd348bbdeb94873",
+    "train-labels-idx1-ubyte.gz": "d53e105ee54ea40749a09fcbcd1e9432",
+    "t10k-images-idx3-ubyte.gz": "9fb629c4189551a2d022fa330f9573f3",
+    "t10k-labels-idx1-ubyte.gz": "ec29112dd5afa0611ce80d1b7f02629c"
+  },
+  "artifact_sha256": {
+    "expected.bin": "f5a0dfcafa407c1916e0d3b830d8aa5420f0e7e046be6323d1cd401fdcee5bba",
+    "inputs.bin": "20b3c672374939ddd9057c78b567eea691855345ef76582551785fc28f49feb1",
+    "model.bin": "5c75ea149d5a76a1eb3474f71fa1b61bc87fb8ae84f54971c2f4ee383775d6c0"
+  }
+}
