@@ -29,7 +29,7 @@ def main():
     def run(command):
         subprocess.run(command, cwd=ROOT, env=environment, check=True)
 
-    run([executable, "--preset", preset, f"-DPython3_EXECUTABLE={sys.executable}"])
+    run([executable, "--preset", preset, "-DCMAKE_BUILD_TYPE=Release", f"-DPython3_EXECUTABLE={sys.executable}"])
     if args.action != "configure":
         run([executable, "--build", "build", "--config", "Release"])
     if args.action == "test":

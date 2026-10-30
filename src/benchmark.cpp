@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
             std::cerr << "Usage: inference_bench MODEL INPUTS MODE THREADS WARMUP REPEATS TARGET_MS\n";
             return 2;
         }
+        if (std::string(INFERENCE_BUILD_TYPE) != "Release" && std::string(INFERENCE_BUILD_TYPE) != "RelWithDebInfo")
+            throw std::runtime_error("benchmarks require an explicit Release or RelWithDebInfo build");
         auto model = inference::load_model(argv[1]);
         auto inputs = inference::load_matrix(argv[2]);
         const std::string mode(argv[3]);
