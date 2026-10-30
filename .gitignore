@@ -8,3 +8,4 @@ __pycache__/
 CMakeUserPresets.json
 .vscode/settings.json
 *.user
+examples/cpp_scores.bin

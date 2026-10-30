@@ -1,8 +1,11 @@
 {
   "version": "2.0.0",
   "tasks": [
-    {"label": "Configure Release", "type": "process", "command": "cmake", "args": ["-S", ".", "-B", "build", "-DCMAKE_BUILD_TYPE=Release"], "problemMatcher": []},
-    {"label": "Build Release", "type": "process", "command": "cmake", "args": ["--build", "build", "--config", "Release"], "dependsOn": "Configure Release", "group": {"kind": "build", "isDefault": true}, "problemMatcher": ["$gcc", "$msCompile"]},
-    {"label": "Test C++", "type": "process", "command": "ctest", "args": ["--test-dir", "build", "-C", "Release", "--output-on-failure"], "dependsOn": "Build Release", "problemMatcher": []}
+    {"label": "Configure Release", "type": "process", "command": "${command:python.interpreterPath}", "args": ["scripts/dev.py", "configure"], "problemMatcher": []},
+    {"label": "Build Release", "type": "process", "command": "${command:python.interpreterPath}", "args": ["scripts/dev.py", "build"], "group": {"kind": "build", "isDefault": true}, "problemMatcher": ["$gcc", "$msCompile"]},
+    {"label": "Test C++", "type": "process", "command": "${command:python.interpreterPath}", "args": ["scripts/dev.py", "test"], "problemMatcher": []},
+    {"label": "Verify PyTorch parity", "type": "process", "command": "${command:python.interpreterPath}", "args": ["python/verify.py", "--exe", "build/inference_cli", "--artifacts", "examples", "--threads", "4"], "windows": {"args": ["python/verify.py", "--exe", "build/inference_cli.exe", "--artifacts", "examples", "--threads", "4"]}, "problemMatcher": []},
+    {"label": "Benchmark CPU", "type": "process", "command": "${command:python.interpreterPath}", "args": ["python/benchmark.py", "--exe", "build/inference_bench"], "windows": {"args": ["python/benchmark.py", "--exe", "build/inference_bench.exe"]}, "problemMatcher": []},
+    {"label": "Train and export MNIST", "type": "process", "command": "${command:python.interpreterPath}", "args": ["python/train_export.py"], "problemMatcher": []}
   ]
 }

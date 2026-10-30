@@ -1,0 +1,13 @@
+{
+  "mode": "optimized",
+  "threads": 4,
+  "samples": 36,
+  "logits": 360,
+  "max_absolute_error": 1.71661376953125e-05,
+  "mean_absolute_error": 1.0242685675621032e-06,
+  "max_relative_error_floor_1e-6": 6.970723650837143e-05,
+  "prediction_agreement": 1.0,
+  "atol": 0.0001,
+  "rtol": 0.0001,
+  "passed": true
+}

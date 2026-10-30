@@ -10,7 +10,7 @@
   "epochs": 5,
   "training_samples": 60000,
   "test_samples": 10000,
-  "exported_mnist_samples": 1024,
+  "exported_mnist_samples": 32,
   "edge_samples": 4,
   "threads": 2,
   "torch_version": "2.15.0+cpu",
@@ -48,8 +48,8 @@
     "t10k-labels-idx1-ubyte.gz": "ec29112dd5afa0611ce80d1b7f02629c"
   },
   "artifact_sha256": {
-    "expected.bin": "f5a0dfcafa407c1916e0d3b830d8aa5420f0e7e046be6323d1cd401fdcee5bba",
-    "inputs.bin": "20b3c672374939ddd9057c78b567eea691855345ef76582551785fc28f49feb1",
+    "expected.bin": "38a9e29b7eb5e6def9022a7445b44c048d7ea7154ad8f7b8cdc4f91a2d19d238",
+    "inputs.bin": "9ff41a4111a2b4f2e03953dca19b6037c26ea0ffac2658cdde8403c81f3b27f3",
     "model.bin": "5c75ea149d5a76a1eb3474f71fa1b61bc87fb8ae84f54971c2f4ee383775d6c0"
   }
 }

@@ -1,0 +1,35 @@
+name: Build and numerical parity
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --config Release --parallel 2
+      - run: ctest --test-dir build -C Release --output-on-failure
+      - name: Check all modes against PyTorch
+        shell: bash
+        run: |
+          exe=build/inference_cli
+          if [ "${{ runner.os }}" = "Windows" ]; then exe=build/Release/inference_cli.exe; fi
+          python python/verify.py --exe "$exe" --artifacts examples --mode baseline --output build/baseline.json
+          python python/verify.py --exe "$exe" --artifacts examples --threads 1 --output build/optimized.json
+          python python/verify.py --exe "$exe" --artifacts examples --threads 4 --output build/parallel.json
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DINFERENCE_SANITIZERS=ON
+      - run: cmake --build build --parallel 2
+      - run: ctest --test-dir build --output-on-failure
