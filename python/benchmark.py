@@ -47,6 +47,13 @@ def main():
     args = parser.parse_args()
     if any(b < 1 for b in args.batches) or any(t < 1 or t > 256 for t in args.threads) or args.repeats < 3 or args.warmup < 1 or not 1 <= args.target_ms <= 10000:
         parser.error("invalid positive batch/thread/warmup/repetition/target settings")
+    # Scope provenance to implementation files so output files cannot mark their own run dirty.
+    source_paths = ["CMakeLists.txt", "CMakePresets.json", "requirements.txt", "include", "src", "cmake", "python", "scripts", "tests", ".github"]
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "--", *source_paths], text=True).strip())
+    except (OSError, subprocess.CalledProcessError):
+        commit, dirty = None, None
     torch.set_num_interop_threads(1)
     model = DigitMLP().eval()
     model.load_state_dict(torch.load(args.artifacts / "model.pt", map_location="cpu", weights_only=True))
@@ -91,16 +98,12 @@ def main():
     for row in rows:
         baseline = next(r for r in rows if r["batch"] == row["batch"] and r["mode"] == "baseline")
         row["speedup_vs_baseline"] = baseline["median_us"] / row["median_us"]
-    try:
-        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-        dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], text=True).strip())
-    except (OSError, subprocess.CalledProcessError):
-        commit, dirty = None, None
     metadata = {"timestamp_utc": datetime.now(timezone.utc).isoformat(), "cpu": cpu_name(),
         "logical_cpus": os.cpu_count(), "os": platform.platform(), "machine": platform.machine(),
         "python": sys.version, "pytorch": torch.__version__, "numpy": np.__version__,
         "torch_build": torch.__config__.show(), "interop_threads": 1,
         "source_commit": commit, "source_dirty": dirty,
+        "source_paths_checked": source_paths,
         "model_sha256": hashlib.sha256((args.artifacts / "model.bin").read_bytes()).hexdigest(),
         "inputs_sha256": hashlib.sha256((args.artifacts / "inputs.bin").read_bytes()).hexdigest(),
         "executable_sha256": hashlib.sha256(args.exe.read_bytes()).hexdigest(),
