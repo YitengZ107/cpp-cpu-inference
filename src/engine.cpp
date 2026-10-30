@@ -64,18 +64,66 @@ std::vector<float> baseline(const Model& model, const std::vector<float>& input)
     }
     return output;
 }
-Engine::Engine(Model model) : model_(std::move(model)), hidden_(model_.first().outputs) {}
+Engine::Engine(Model model, std::size_t threads) : model_(std::move(model)), thread_count_(threads) {
+    if (threads == 0 || threads > 256) throw std::invalid_argument("threads must be in [1,256]");
+    hidden_.resize(checked_size(model_.first().outputs, threads));
+    try {
+        for (std::size_t i = 1; i < threads; ++i) workers_.emplace_back(&Engine::worker_loop, this, i);
+    } catch (...) { stop(); throw; }
+}
+Engine::~Engine() { stop(); }
+void Engine::stop() {
+    { std::lock_guard<std::mutex> lock(mutex_); stopping_ = true; }
+    start_.notify_all();
+    for (auto& worker : workers_) if (worker.joinable()) worker.join();
+}
+void Engine::process(std::size_t worker) {
+    const auto& first = model_.first();
+    const auto& second = model_.second();
+    // Quotient/remainder partition avoids batch*worker overflow.
+    const auto quotient = batch_ / thread_count_, remainder = batch_ % thread_count_;
+    const auto begin = worker * quotient + std::min(worker, remainder);
+    const auto end = begin + quotient + (worker < remainder ? 1 : 0);
+    float* hidden = hidden_.data() + worker * first.outputs;
+    for (auto row = begin; row < end; ++row) {
+        dense_contiguous(first, input_ + row * first.inputs, hidden, true);
+        dense_contiguous(second, hidden, output_.data() + row * second.outputs, false);
+    }
+}
+void Engine::worker_loop(std::size_t worker) {
+    std::size_t seen = 0;
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (;;) {
+        start_.wait(lock, [&] { return stopping_ || generation_ != seen; });
+        if (stopping_) return;
+        seen = generation_;
+        lock.unlock();
+        process(worker);
+        lock.lock();
+        if (--remaining_ == 0) done_.notify_one();
+    }
+}
 const std::vector<float>& Engine::run(const std::vector<float>& input) {
     const auto& first = model_.first();
     const auto& second = model_.second();
+    if (&input == &output_) throw std::invalid_argument("input cannot alias this engine's output");
     if (input.size() % first.inputs != 0) throw std::invalid_argument("input must contain whole samples");
     for (float value : input)
         if (!std::isfinite(value)) throw std::invalid_argument("non-finite input");
     const auto batch = input.size() / first.inputs;
     output_.resize(checked_size(batch, second.outputs));
-    for (std::size_t row = 0; row < batch; ++row) {
-        dense_contiguous(first, input.data() + row * first.inputs, hidden_.data(), true);
-        dense_contiguous(second, hidden_.data(), output_.data() + row * second.outputs, false);
+    if (batch == 0) return output_;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        input_ = input.data(); batch_ = batch;
+        remaining_ = workers_.size();
+        ++generation_;
+    }
+    start_.notify_all();
+    process(0); // The calling thread participates.
+    if (!workers_.empty()) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        done_.wait(lock, [&] { return remaining_ == 0; });
     }
     return output_;
 }

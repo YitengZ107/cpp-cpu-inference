@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--rtol", type=float, default=1e-4)
     parser.add_argument("--output", type=Path, default=Path("results/correctness.json"))
     parser.add_argument("--mode", choices=["baseline", "optimized"], default="optimized")
+    parser.add_argument("--threads", type=int, default=1)
     args = parser.parse_args()
     if args.atol < 0 or args.rtol < 0 or not np.isfinite([args.atol, args.rtol]).all():
         parser.error("tolerances must be finite and nonnegative")
@@ -31,11 +32,11 @@ def main():
     np.testing.assert_allclose(expected, reference, atol=args.atol, rtol=args.rtol)
     destination = args.artifacts / "cpp_scores.bin"
     subprocess.run([str(args.exe.resolve()), "infer", str(args.artifacts / "model.bin"),
-                    str(args.artifacts / "inputs.bin"), str(destination), args.mode], check=True)
+                    str(args.artifacts / "inputs.bin"), str(destination), args.mode, str(args.threads)], check=True)
     actual = read_matrix(destination)
     np.testing.assert_allclose(actual, reference, atol=args.atol, rtol=args.rtol)
     error = np.abs(actual.astype(np.float64) - reference)
-    report = {"mode": args.mode, "samples": len(inputs), "logits": actual.size, "max_absolute_error": float(error.max()),
+    report = {"mode": args.mode, "threads": args.threads, "samples": len(inputs), "logits": actual.size, "max_absolute_error": float(error.max()),
               "mean_absolute_error": float(error.mean()),
               "max_relative_error_floor_1e-6": float((error / np.maximum(np.abs(reference), 1e-6)).max()),
               "prediction_agreement": float((actual.argmax(1) == reference.argmax(1)).mean()),

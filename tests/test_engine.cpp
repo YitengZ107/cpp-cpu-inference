@@ -46,6 +46,17 @@ int main() {
         require(engine.run(input) == scores, "grow after empty batch");
         rejects([&] { engine.run({1}); });
         rejects([&] { engine.run({1, std::numeric_limits<float>::quiet_NaN()}); });
+        rejects([&] { engine.run(engine.run(input)); });
+        rejects([&] { inference::Engine invalid(model, 0); });
+        rejects([&] { inference::Engine invalid(model, 257); });
+        for (const std::size_t threads : {2u, 4u, 8u}) {
+            inference::Engine parallel(model, threads);
+            for (int iteration = 0; iteration < 40; ++iteration) {
+                require(parallel.run(input) == scores, "parallel scores across repeated jobs");
+                require(parallel.run({0, 0}) == std::vector<float>({0.5f}), "batch smaller than thread count");
+                require(parallel.run({}).empty(), "parallel empty batch");
+            }
+        }
         std::mt19937 rng(42);
         std::uniform_real_distribution<float> distribution(-1, 1);
         for (const std::size_t outputs : {1u, 3u, 10u, 64u}) {
@@ -61,6 +72,9 @@ int main() {
             const auto actual = random_engine.run(random_inputs);
             for (std::size_t i = 0; i < expected.size(); ++i)
                 require(std::abs(expected[i] - actual[i]) < 1e-5f, "optimized randomized parity including vector tails");
+            inference::Engine parallel_random(random_model, 4);
+            const auto parallel_actual = parallel_random.run(random_inputs);
+            require(parallel_actual == actual, "parallel random parity with uneven partition");
         }
         std::cout << "All engine tests passed\n";
         return 0;
