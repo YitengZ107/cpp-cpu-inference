@@ -5,14 +5,17 @@
 
 int main(int argc, char** argv) {
     try {
-        if (argc != 5 || std::string(argv[1]) != "infer") {
-            std::cerr << "Usage: inference_cli infer MODEL INPUTS OUTPUT\n";
+        if ((argc != 5 && argc != 6) || std::string(argv[1]) != "infer") {
+            std::cerr << "Usage: inference_cli infer MODEL INPUTS OUTPUT [baseline|optimized]\n";
             return 2;
         }
         const auto model = inference::load_model(argv[2]);
         const auto inputs = inference::load_matrix(argv[3]);
         if (inputs.columns != model.first().inputs) throw std::invalid_argument("input columns do not match model");
-        const auto scores = inference::baseline(model, inputs.values);
+        const std::string mode = argc == 6 ? argv[5] : "baseline";
+        if (mode != "baseline" && mode != "optimized") throw std::invalid_argument("unknown inference mode");
+        inference::Engine engine(model);
+        const auto scores = mode == "baseline" ? inference::baseline(model, inputs.values) : engine.run(inputs.values);
         inference::save_matrix(argv[4], {inputs.rows, model.second().outputs, scores});
         return 0;
     } catch (const std::exception& error) {

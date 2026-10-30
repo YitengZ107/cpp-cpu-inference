@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <stdexcept>
 #include <string>
 
@@ -36,6 +37,31 @@ int main() {
         rejects([] { inference::checked_size(std::numeric_limits<std::size_t>::max(), 2); });
         inference::Model zero({1, 1, {0}, {-1}}, {1, 1, {100}, {2}});
         require(inference::baseline(zero, {123})[0] == 2, "negative hidden activation must be zero");
+        inference::Engine engine(model);
+        const std::vector<float> input{1, 2, -1, -2, 0, 0};
+        require(engine.run(input) == scores, "optimized hand-computed result");
+        const auto* storage = engine.run(input).data();
+        require(engine.run(input).data() == storage, "same-size runs must reuse output storage");
+        require(engine.run({}).empty(), "optimized empty batch");
+        require(engine.run(input) == scores, "grow after empty batch");
+        rejects([&] { engine.run({1}); });
+        rejects([&] { engine.run({1, std::numeric_limits<float>::quiet_NaN()}); });
+        std::mt19937 rng(42);
+        std::uniform_real_distribution<float> distribution(-1, 1);
+        for (const std::size_t outputs : {1u, 3u, 10u, 64u}) {
+            inference::Dense a{7, outputs, std::vector<float>(7 * outputs), std::vector<float>(outputs)};
+            inference::Dense b{outputs, 3, std::vector<float>(outputs * 3), std::vector<float>(3)};
+            for (auto* buffer : {&a.weights, &a.bias, &b.weights, &b.bias})
+                for (float& value : *buffer) value = distribution(rng);
+            inference::Model random_model(a, b);
+            inference::Engine random_engine(random_model);
+            std::vector<float> random_inputs(7 * 19);
+            for (float& value : random_inputs) value = distribution(rng);
+            const auto expected = inference::baseline(random_model, random_inputs);
+            const auto actual = random_engine.run(random_inputs);
+            for (std::size_t i = 0; i < expected.size(); ++i)
+                require(std::abs(expected[i] - actual[i]) < 1e-5f, "optimized randomized parity including vector tails");
+        }
         std::cout << "All engine tests passed\n";
         return 0;
     } catch (const std::exception& error) {
